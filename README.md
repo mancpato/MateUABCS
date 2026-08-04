@@ -7,6 +7,12 @@ Aquí se comparten los artefactos interactivos (código en p5.js, notebooks de G
 
 ---
 
+## Sobre el contenido
+
+Se espera que este repositorio contenga programas/recursos diversos pensados para uso en clase. Es deseable que en el código del programa que se agregue incluya el prompt en caso de que se trate de un recurso reproducible por alumnos en clase.
+
+---
+
 ## Si es tu primera vez usando GitHub
 
 No necesitas saber usar Git para aprovechar este repositorio.

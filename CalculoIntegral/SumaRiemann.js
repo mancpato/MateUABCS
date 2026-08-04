@@ -256,20 +256,20 @@ ARRIBA del eje horizontal, con su base apoyada sobre el eje y el eje
 visible dentro del cuadro. Si alguno cuelga hacia abajo, o si la base
 queda fuera de la ventana, la transformación de coordenadas o el rango
 vertical están mal.
- * 
 
-NOTA DE AUDITORÍA: el comentario original de esta sección describía el
-relleno de los rectángulos como un color "para contrastar el rojo de la
-función". Eso no corresponde al código: el relleno es azul (0, 150, 255)
-y la curva dentro del intervalo también se dibuja en rojo (220, 0, 0),
-no en un color que el azul deba "contrastar" en ese sentido. Es un
-resabio de una versión anterior del comentario que no se actualizó junto
-con el color real. No afecta el funcionamiento del programa, solo la
-precisión de la documentación — y es un buen recordatorio de que el
-Elemento 5 audita las matemáticas, pero los comentarios del código
-también hay que revisarlos con la misma atención.
 
- */
+* NOTA DE AUDITORÍA: el comentario original de esta sección describía el
+* relleno de los rectángulos como un color "para contrastar el rojo de la
+* función". Eso no corresponde al código: el relleno es azul (0, 150, 255)
+* y la curva dentro del intervalo también se dibuja en rojo (220, 0, 0),
+* no en un color que el azul deba "contrastar" en ese sentido. Es un
+* resabio de una versión anterior del comentario que no se actualizó junto
+* con el color real. No afecta el funcionamiento del programa, solo la
+* precisión de la documentación — y es un buen recordatorio de que el
+* Elemento 5 audita las matemáticas, pero los comentarios del código
+* también hay que revisarlos con la misma atención.
+* 
+*/
 
 // Controles del DOM
 let sliderN, spanN, selMetodo;

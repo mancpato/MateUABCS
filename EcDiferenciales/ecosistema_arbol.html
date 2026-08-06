@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Ecosistema del árbol</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+<style>
+  html, body {
+    margin: 0; padding: 0;
+    background: #1b1f1a;
+    display: flex; justify-content: center; align-items: center;
+    height: 100%;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+  #wrap { box-shadow: 0 8px 30px rgba(0,0,0,0.5); border-radius: 10px; overflow: hidden; }
+</style>
+</head>
+<body>
+<div id="wrap"></div>
+<script>
+
+// ---------- Parámetros del modelo ----------
+const P = {
+  r: 0.9,        // tasa de crecimiento de la plaga X
+  a: 0.05,       // eficacia de Y comiendo X
+  m: 0.02,       // eficacia de Z comiendo X
+  b: 0.018,      // conversión de X comido en crecimiento de Y
+  c: 0.03,       // eficacia de Z comiendo Y
+  d: 0.28,       // mortalidad natural de Y
+  Kmin: 15,      // comida mínima disponible para X (árbol casi muerto)
+  Kmax: 140,     // comida máxima disponible para X (árbol sano)
+  Xthr: 12,      // umbral de X bajo el cual Y empieza a emigrar
+  emigRate: 0.6, // tasa de emigración de Y cuando escasea X
+  g: 0.5,        // tasa a la que los pájaros se van
+  birdAmp: 3.2,  // amplitud de las oleadas de pájaros
+  birdFreq: 0.05,// frecuencia de llegada de pájaros
+  healRate: 0.02,// recuperación de la capacidad de carga del árbol
+  dmgRate: 0.03, // daño a la capacidad de carga por unidad de X
+  dmgSat: 60,    // saturación del daño
+  colorMaxX: 85  // valor de X en el que el árbol llega a café total (cambio DIRECTO)
+};
+
+const DT = 0.06; // paso de integración fijo
+const HISTORY_LEN = 500;
+
+const COL_X = '#e0a63b'; // plaga
+const COL_Y = '#5fb0e0'; // depredador
+const COL_Z = '#e0e0e0'; // pájaros
+
+let sliderX, sliderY, sliderZ, sliderSpeed, btnReset;
+let X, Y, Z, H, t;
+let histX = [], histY = [], histZ = [];
+
+function setup() {
+  const c = createCanvas(800, 600);
+  c.parent('wrap');
+  textFont('Segoe UI, sans-serif');
+
+  sliderX = createSlider(0, 100, 30, 1);
+  sliderY = createSlider(0, 100, 8, 1);
+  sliderZ = createSlider(0, 30, 2, 1);
+  sliderSpeed = createSlider(0, 8, 3, 1);
+
+  sliderX.position(150, 26);   sliderX.style('width', '140px');
+  sliderY.position(150, 50);   sliderY.style('width', '140px');
+  sliderZ.position(150, 74);   sliderZ.style('width', '140px');
+  sliderSpeed.position(430, 26); sliderSpeed.style('width', '140px');
+
+  btnReset = createButton('Reiniciar simulación');
+  btnReset.mousePressed(resetSim);
+  btnReset.style('padding', '6px 14px');
+  btnReset.style('border-radius', '6px');
+  btnReset.style('border', 'none');
+  btnReset.style('background', '#4c7a3f');
+  btnReset.style('color', 'white');
+  btnReset.style('cursor', 'pointer');
+  btnReset.position(430, 66);
+
+  resetSim();
+}
+
+function resetSim() {
+  X = sliderX.value();
+  Y = sliderY.value();
+  Z = sliderZ.value();
+  H = 1.0;
+  t = 0;
+  histX = []; histY = []; histZ = [];
+}
+
+function K_of_H(h) {
+  return P.Kmin + (P.Kmax - P.Kmin) * h;
+}
+
+function stepModel() {
+  const K = K_of_H(H);
+
+  const scarcity = constrain((P.Xthr - X) / P.Xthr, 0, 1);
+  const emigY = P.emigRate * scarcity * Y;
+
+  const pulse = Math.max(0, Math.sin(t * P.birdFreq));
+  const attract = (X + Y) / (30 + X + Y);
+  const imm = P.birdAmp * Math.pow(pulse, 4) * (0.4 + attract);
+
+  const dX = P.r * X * (1 - X / K) - P.a * X * Y - P.m * X * Z;
+  const dY = P.b * X * Y - P.c * Y * Z - P.d * Y - emigY;
+  const dZ = -P.g * Z + imm;
+
+  const dmg = P.dmgRate * (X / (X + P.dmgSat));
+  const dH = P.healRate * (1 - H) - dmg;
+
+  X = Math.max(0, X + dX * DT);
+  Y = Math.max(0, Y + dY * DT);
+  Z = Math.max(0, Z + dZ * DT);
+  H = constrain(H + dH * DT, 0, 1);
+
+  t += DT;
+
+  histX.push(X); histY.push(Y); histZ.push(Z);
+  if (histX.length > HISTORY_LEN) { histX.shift(); histY.shift(); histZ.shift(); }
+}
+
+function draw() {
+  background('#1b1f1a');
+
+  const steps = sliderSpeed.value();
+  for (let i = 0; i < steps; i++) stepModel();
+
+  drawPanel(20, 110, 460, 470, '#20261e');
+  drawTree(250, 560, X);
+
+  drawPanel(500, 110, 280, 470, '#20261e');
+  drawGraph(515, 122, 250, 145, histX, COL_X, 'Plaga (X)');
+  drawGraph(515, 285, 250, 145, histY, COL_Y, 'Depredador (Y)');
+  drawGraph(515, 448, 250, 122, histZ, COL_Z, 'Pájaros (Z)');
+
+  drawTopBar();
+}
+
+function drawTopBar() {
+  noStroke();
+  fill('#2a3025');
+  rect(0, 0, width, 106);
+
+  drawSliderLabel(20, 26, COL_X, 'X — Plaga inicial: ' + sliderX.value());
+  drawSliderLabel(20, 50, COL_Y, 'Y — Depredador inicial: ' + sliderY.value());
+  drawSliderLabel(20, 74, COL_Z, 'Z — Pájaros iniciales: ' + sliderZ.value());
+
+  fill('#c9d6c1');
+  textSize(12);
+  textAlign(LEFT, CENTER);
+  const speedLabel = sliderSpeed.value() === 0 ? 'Pausado' : sliderSpeed.value() + 'x';
+  text('Velocidad: ' + speedLabel, 300, 30);
+
+  fill('#8fae82');
+  textSize(11);
+  text('X: ' + X.toFixed(1) + '   Y: ' + Y.toFixed(1) + '   Z: ' + Z.toFixed(1), 300, 90);
+}
+
+function drawSliderLabel(x, y, col, label) {
+  noStroke();
+  fill(col);
+  ellipse(x, y, 9, 9);
+  fill('#c9d6c1');
+  textSize(11);
+  textAlign(LEFT, CENTER);
+  text(label, x + 120, y);
+}
+
+function drawPanel(x, y, w, h, col) {
+  noStroke();
+  fill(col);
+  rect(x, y, w, h, 10);
+}
+
+// El color del follaje depende DIRECTAMENTE del valor actual de X (la plaga)
+function drawTree(cx, groundY, pestLevel) {
+  const trunkH = 150;
+  const trunkW = 34;
+  const topY = groundY - trunkH;
+
+  // suelo
+  noStroke();
+  fill('#2e2418');
+  rect(20, groundY, 460, 580 - groundY, 0, 0, 10, 10);
+
+  // tronco
+  fill('#4a3626');
+  rect(cx - trunkW / 2, topY, trunkW, trunkH, 4);
+
+  // fracción café en función directa de la plaga actual
+  const frac = constrain(pestLevel / P.colorMaxX, 0, 1);
+  const green = color(58, 133, 56);
+  const brown = color(110, 74, 40);
+  const canopyCol = lerpColor(green, brown, frac);
+  const canopyColDark = lerpColor(color(30, 90, 34), color(75, 48, 24), frac);
+
+  const blobs = [
+    [cx, topY - 90, 105],
+    [cx - 90, topY - 40, 80],
+    [cx + 90, topY - 40, 80],
+    [cx - 55, topY - 110, 70],
+    [cx + 55, topY - 110, 70],
+    [cx, topY - 30, 95]
+  ];
+
+  noStroke();
+  fill(canopyColDark);
+  for (const [bx, by, r] of blobs) ellipse(bx + 8, by + 10, r * 1.9, r * 1.9);
+  fill(canopyCol);
+  for (const [bx, by, r] of blobs) ellipse(bx, by, r * 1.9, r * 1.9);
+
+  // hojas caídas cuando la plaga es alta
+  if (frac > 0.4) {
+    const nLeaves = Math.floor((frac - 0.4) * 90);
+    randomSeed(42);
+    fill(canopyCol);
+    for (let i = 0; i < nLeaves; i++) {
+      const lx = cx - 150 + (i * 37) % 300 + sin(i) * 10;
+      const ly = groundY - 5 - (i * 13) % 30;
+      ellipse(lx, ly, 6, 4);
+    }
+  }
+}
+
+function drawGraph(x, y, w, h, data, col, label) {
+  noStroke();
+  fill('#151a12');
+  rect(x, y, w, h, 6);
+
+  fill('#9fb193');
+  textSize(11);
+  textAlign(LEFT, TOP);
+  text(label, x + 8, y + 6);
+
+  if (data.length < 2) return;
+
+  let maxV = Math.max(...data, 1);
+  maxV *= 1.15;
+
+  stroke(col);
+  strokeWeight(2);
+  noFill();
+  beginShape();
+  for (let i = 0; i < data.length; i++) {
+    const px = map(i, 0, HISTORY_LEN - 1, x + 6, x + w - 6);
+    const py = map(data[i], 0, maxV, y + h - 8, y + 22);
+    vertex(px, py);
+  }
+  endShape();
+
+  noStroke();
+  fill('#7d8f72');
+  textSize(9);
+  textAlign(RIGHT, TOP);
+  text(maxV.toFixed(0), x + w - 6, y + 22);
+}
+</script>
+</body>
+</html>
